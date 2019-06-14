@@ -59,11 +59,11 @@ createAKSCluster() {
     else
         echo "Resource group ${DEPLOYMENT_NAME} already exists, skip az group create."
     fi
-    if ! az aks get-credentials --resource-group=${DEPLOYMENT_NAME} --name=${DEPLOYMENT_NAME} 2>/dev/null ;
+    if ! az aks get-credentials --resource-group=${DEPLOYMENT_NAME} --name=${AZ_CLUSTER_NAME} 2>/dev/null ;
     then
         echo "Kubernetes cluster not found, creating."
-        az aks create --resource-group ${DEPLOYMENT_NAME} --name=${DEPLOYMENT_NAME} --node-count 3 --node-vm-size ${AZ_NODE_SIZE} --kubernetes-version 1.12.5 --generate-ssh-keys -l "${AZ_LOCATION}" --service-principal ${AZ_CLIENT_ID} --client-secret "${AZ_CLIENT_SECRET}" 
-        if ! az aks get-credentials --resource-group=${DEPLOYMENT_NAME} --name=${DEPLOYMENT_NAME} 2>/dev/null ; then
+        az aks create --resource-group ${DEPLOYMENT_NAME} --name=${AZ_CLUSTER_NAME} --node-count 3 --node-vm-size ${AZ_NODE_SIZE} --generate-ssh-keys -l "${AZ_LOCATION}" --service-principal ${AZ_CLIENT_ID} --client-secret "${AZ_CLIENT_SECRET}"
+        if ! az aks get-credentials --resource-group=${DEPLOYMENT_NAME} --name=${AZ_CLUSTER_NAME} 2>/dev/null ; then
             echo "az aks create failed."
             exit 1
         fi
@@ -71,7 +71,7 @@ createAKSCluster() {
         echo "Kubernetes cluster already exists, skip az aks create. (az aks get-credentials)"
     fi
 
-    kubectl config use-context ${DEPLOYMENT_NAME}
+    kubectl config use-context ${AZ_CLUSTER_NAME}
     kubectl config current-context
     kubectl get nodes
     
@@ -88,6 +88,8 @@ createAzSecrets() {
   check_variable "${AZ_CLIENT_SECRET}" "AZ_CLIENT_SECRET"
   check_variable "${AZ_TENANT_ID}" "AZ_TENANT_ID"
   check_variable "${AZ_SUBSCRIPTION_ID}" "AZ_SUBSCRIPTION_ID"
+
+  kubectl create namespace ${K8S_NAMESPACE}
 
   set +e
   O=$(kubectl get secret --namespace=${K8S_NAMESPACE} azcreds 2>&1)
